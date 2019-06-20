@@ -2,6 +2,7 @@ package ro.as;
 
 import ro.as.dao.Person;
 import ro.as.dao.RandomPerson;
+import ro.as.service.PersonService;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
