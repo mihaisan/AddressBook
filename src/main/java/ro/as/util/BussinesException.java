@@ -1,4 +1,4 @@
-package ro.as;
+package ro.as.util;
 
 public class BussinesException extends Exception {
     public BussinesException(String message) {

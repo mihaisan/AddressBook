@@ -1,17 +1,18 @@
 package ro.as.service;
 
-import ro.as.BussinesException;
-import ro.as.ReadCsv;
+import ro.as.ui.FilterEnum;
+import ro.as.ui.FilterFields;
+import ro.as.util.BussinesException;
 import ro.as.dao.Person;
 
 import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class PersonService {
 
@@ -19,21 +20,108 @@ public class PersonService {
     private final String dateRegex = "[\\d]{1,2}\\.[\\d]{1,2}\\.[\\d]{4}$";
     private final String patternDate = "dd.MM.yyyy";
 
-    private List<Person> personList;
-    private ReadCsv readCsv = new ReadCsv();
+    private List<Person> personList = new ArrayList<>();
+    private List<Person> filteredList = new ArrayList<>();
+    private ReadWriteCsv readWriteCsv = new ReadWriteCsv();
+    private FilterFields orderField = FilterFields.Selecteaza;
+    private FilterFields filterField = FilterFields.Selecteaza;
+    private String filterValue;
+    private int id = 999999;
+    private Map<FilterEnum, Boolean> filterMap = new HashMap<>();
 
     public void init(){
-        readCsv.read();
-        personList = readCsv.getPersonList();
     }
 
     public void savePerson(Person person) throws BussinesException {
         validatePerson(person);
-        readCsv.savePerson(person);
+        if (person.getId() != null){
+            personList.removeIf(x->x.getId() == person.getId());
+            filteredList.removeIf(x->x.getId() == person.getId());
+        } else {
+            person.setId(id);
+            id++;
+        }
+
+        personList.add(person);
+        filter();
+        order();
+
+        readWriteCsv.setListIsModified(true);
     }
 
     public void deletePerson(Person person) {
-        readCsv.deletePerson(person);
+        personList.removeIf(x->x.getId() == person.getId());
+        filteredList.removeIf(x->x.getId() == person.getId());
+
+        filter();
+        order();
+
+        readWriteCsv.setListIsModified(true);
+    }
+
+    public void order(FilterFields orderField){
+        this.orderField = orderField;
+        order();
+    }
+
+    private void order(){
+        if (orderField.equals(FilterFields.Prenume)){
+            filteredList.sort(Comparator.comparing(Person::getFirstName));
+        } else if (orderField.equals(FilterFields.Nume)){
+            filteredList.sort(Comparator.comparing(Person::getLastName));
+        } else if (orderField.equals(FilterFields.Telefon)){
+            filteredList.sort(Comparator.comparing(Person::getPhone));
+        } else {
+            filteredList = new ArrayList<>(personList);
+        }
+    }
+
+    public void filter(FilterFields filterField, String filterValue){
+        this.filterField = filterField;
+        this.filterValue = filterValue;
+        filter();
+    }
+
+    private void filter() {
+        if (filterField.equals(FilterFields.Prenume)){
+            filteredList =  personList.stream().filter(x->x.getFirstName().contains(filterValue)).collect(Collectors.toList());
+        } else if (filterField.equals(FilterFields.Nume)){
+            filteredList =  personList.stream().filter(x->x.getLastName().contains(filterValue)).collect(Collectors.toList());
+        } else if (filterField.equals(FilterFields.Telefon)){
+            filteredList =  personList.stream().filter(x->x.getPhone().contains(filterValue)).collect(Collectors.toList());
+        } else {
+            filteredList = personList;
+        }
+
+        Predicate<Person> predicate = null;
+        for (Map.Entry<FilterEnum, Boolean> entry : filterMap.entrySet()){
+            if (predicate == null){
+                predicate = createPredicate(entry.getKey());
+            } else {
+                predicate = predicate.and(createPredicate(entry.getKey()));
+            }
+        }
+
+        if (predicate != null){
+            filteredList = filteredList.stream().filter(predicate).collect(Collectors.toList());
+        }
+    }
+
+    private Predicate<Person> createPredicate(FilterEnum key) {
+        Predicate<Person> predicate = null;
+        if (key.equals(FilterEnum.MOBILE)){
+            predicate = x -> x.isMobile();
+        } else if (key.equals(FilterEnum.FIX_PHONE)){
+            predicate = x -> !x.isMobile();
+        } else if (key.equals(FilterEnum.BIRTH_DATE_TODAY)){
+            int curentDay = Calendar.getInstance().get(Calendar.DAY_OF_MONTH);
+            predicate = x -> x.getBirthDate().startsWith((curentDay < 10 ? "0" + curentDay:curentDay + ""));
+        } else if (key.equals(FilterEnum.BIRTH_DATE_THIS_MONTH)){
+            int curentMonth = Calendar.getInstance().get(Calendar.MONTH) + 1;
+            predicate = x -> x.getBirthDate().startsWith((curentMonth < 10 ? "0" + curentMonth:curentMonth + ""), 3);
+        }
+
+        return predicate;
     }
 
     private void validatePerson(Person person) throws BussinesException {
@@ -75,12 +163,15 @@ public class PersonService {
         }
     }
 
-    public String getPatternDate() {
-        return patternDate;
-    }
+    public void loadFile(File file) {
+        readWriteCsv.loadFile(file);
+        personList.addAll(readWriteCsv.getPersonList());
+        readWriteCsv.setPersonList(personList);
+        Thread thread = new Thread(readWriteCsv);
+        thread.start();
 
-    public ReadCsv getReadCsv() {
-        return readCsv;
+        filter();
+        order();
     }
 
     public List<Person> getPersonList() {
@@ -88,6 +179,14 @@ public class PersonService {
     }
 
     public void saveToFile(File selectedFile) {
-        readCsv.saveToFile(selectedFile);
+        readWriteCsv.saveToFile(selectedFile);
+    }
+
+    public List<Person> getFilteredList() {
+        return filteredList;
+    }
+
+    public Map<FilterEnum, Boolean> getFilterMap() {
+        return filterMap;
     }
 }

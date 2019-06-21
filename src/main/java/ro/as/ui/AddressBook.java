@@ -1,4 +1,4 @@
-package ro.as;
+package ro.as.ui;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -63,7 +63,4 @@ public class AddressBook extends JWindow {
         new AddressBookList();
     }
 
-    public static void main (String args[]) {
-        AddressBook test = new AddressBook();
-    }
 }

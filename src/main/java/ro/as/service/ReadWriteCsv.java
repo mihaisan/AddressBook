@@ -1,4 +1,4 @@
-package ro.as;
+package ro.as.service;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -10,12 +10,29 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReadCsv {
+public class ReadWriteCsv implements Runnable {
     private List<Person> personList = new ArrayList<>();
     final private static String FILE_NAME = "d:/work/book.csv";
+    private File file;
+    private boolean listIsModified;
 
-    public void read(){
-        File file = new File(FILE_NAME);
+    @Override
+    public void run() {
+        while (true) {
+            try {
+                Thread.currentThread().sleep(60000);
+                if (listIsModified){
+                    writeCSV(file);
+                    listIsModified = false;
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void loadFile(File file){
+        this.file = file;
         try {
             FileInputStream fstream = new FileInputStream(file);
             BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
@@ -38,21 +55,6 @@ public class ReadCsv {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public synchronized void deletePerson(Person newPerson){
-        personList.removeIf(x->x.getId() == newPerson.getId());
-        writeCSV(new File(FILE_NAME));
-    }
-
-    public synchronized void savePerson(Person newPerson){
-        if (newPerson.getId() != null){
-            personList.removeIf(x->x.getId() == newPerson.getId());
-        }
-
-        personList.add(newPerson);
-
-        writeCSV(new File(FILE_NAME));
     }
 
     private void writeCSV(File file){
@@ -86,5 +88,9 @@ public class ReadCsv {
 
     public void saveToFile(File selectedFile) {
         writeCSV(selectedFile);
+    }
+
+    public void setListIsModified(boolean listIsModified) {
+        this.listIsModified = listIsModified;
     }
 }
