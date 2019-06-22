@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>address-book</groupId>
-    <artifactId>address-book-id</artifactId>
+    <artifactId>address-book</artifactId>
     <version>1.0-SNAPSHOT</version>
     <build>
         <plugins>
@@ -21,21 +21,6 @@
     </build>
 
     <dependencies>
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <version>1.4.184</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.javafaker</groupId>
-            <artifactId>javafaker</artifactId>
-            <version>0.12</version>
-        </dependency>
-        <!--<dependency>-->
-            <!--<groupId>com.opencsv</groupId>-->
-            <!--<artifactId>opencsv</artifactId>-->
-            <!--<version>3.9</version>-->
-        <!--</dependency>-->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
